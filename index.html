@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Run & Build</title>
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<style>
+:root{
+  --ink:#17324f;
+  --muted:#6b829d;
+  --panel:rgba(255,255,255,.92);
+  --panel2:rgba(255,255,255,.78);
+  --blue:#4e9bff;
+  --blue2:#2f72da;
+  --green:#35d07c;
+  --green2:#1f9f58;
+  --yellow:#ffd14b;
+  --yellow2:#d6930d;
+  --red:#ff6a6a;
+  --red2:#d84949;
+  --purple:#a46dff;
+  --purple2:#7b45dc;
+  --shadow:0 12px 0 rgba(0,0,0,.13);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#091826;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;user-select:none;touch-action:none}
+body{display:flex;align-items:center;justify-content:center}
+#app{position:relative;width:100vw;height:100vh;max-width:520px;max-height:980px;overflow:hidden;background:linear-gradient(180deg,#cbeeff,#eef9ff)}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hidden{display:none!important}
+.screen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.screen.active{display:flex}
+.panel{
+  width:min(470px,94vw);
+  max-height:92vh;
+  overflow:auto;
+  background:var(--panel);
+  border-radius:28px;
+  padding:20px;
+  box-shadow:0 16px 40px rgba(0,0,0,.18);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.65);
+}
+h1,h2,h3{margin:0 0 10px}
+.sub{margin:0 0 16px;color:var(--muted);font-weight:600;line-height:1.35}
+button{
+  border:0;border-radius:16px;padding:13px 16px;font-weight:900;font-size:15px;
+  color:var(--ink);background:#ecf3f8;box-shadow:0 5px 0 rgba(0,0,0,.12);cursor:pointer;
+}
+button:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.12)}
+button.primary{background:linear-gradient(180deg,#5ee28e,var(--green));color:#084123}
+button.blue{background:linear-gradient(180deg,#6fb0ff,var(--blue));color:#fff}
+button.gold{background:linear-gradient(180deg,#ffd65f,var(--yellow));color:#654100}
+button.red{background:linear-gradient(180deg,#ff8e8e,var(--red));color:#fff}
+button.purple{background:linear-gradient(180deg,#bf90ff,var(--purple));color:#fff}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.card{
+  background:#f4f8fc;border-radius:18px;padding:12px;border:1px solid #e5edf4;
+}
+.card b{display:block;font-size:20px;line-height:1}
+.card span{display:block;margin-top:4px;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.06em}
+.topbar{
+  position:absolute;top:12px;left:12px;right:12px;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;pointer-events:none
+}
+.hudbox{
+  background:rgba(255,255,255,.92);border-radius:15px;padding:9px 12px;font-weight:900;
+  box-shadow:0 5px 16px rgba(0,0,0,.12);pointer-events:auto;color:var(--ink)
+}
+#progressWrap{
+  position:absolute;top:58px;left:12%;right:12%;height:11px;background:rgba(255,255,255,.72);
+  border-radius:20px;overflow:hidden;z-index:10;display:none
+}
+#progress{height:100%;width:0;background:linear-gradient(90deg,#41dd8b,#ffd65f);border-radius:20px}
+#controls{
+  position:absolute;left:0;right:0;bottom:18px;z-index:12;display:none;justify-content:space-between;
+  align-items:end;padding:0 18px;pointer-events:none
+}
+.control{
+  width:74px;height:58px;border-radius:20px;background:rgba(255,255,255,.9);font-size:24px;pointer-events:auto
+}
+#toast{
+  position:absolute;left:50%;bottom:96px;transform:translateX(-50%);
+  background:#17324f;color:white;padding:11px 16px;border-radius:14px;z-index:50;
+  display:none;font-weight:800;box-shadow:0 8px 24px rgba(0,0,0,.18)
+}
+.menu{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:10px
+}
+.item{
+  display:flex;gap:10px;align-items:center;justify-content:space-between;
+  background:#f5f8fc;border:1px solid #e7eef5;border-radius:18px;padding:12px;margin:10px 0
+}
+.item .meta{flex:1}
+.item .meta small{display:block;color:var(--muted);margin-top:4px;line-height:1.25}
+.bar{height:8px;background:#dbe7f0;border-radius:99px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#4e9bff,#35d07c)}
+.skinSwatch{
+  width:44px;height:44px;border-radius:14px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.7),0 4px 12px rgba(0,0,0,.12)
+}
+.tag{
+  display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;
+  background:#edf5fd;color:var(--ink);font-size:12px;font-weight:900;letter-spacing:.04em
+}
+#loading{
+  position:absolute;inset:0;z-index:100;background:linear-gradient(180deg,#cbeeff,#eef9ff);
+  display:flex;align-items:center;justify-content:center;font-weight:900;color:var(--ink)
+}
+.small-note{color:var(--muted);font-size:12px;line-height:1.45;margin-top:10px}
+.progressText{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-weight:900;margin-bottom:8px}
+.sep{height:1px;background:#e6edf4;margin:14px 0}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="loading">Loading Run & Build...</div>
+
+  <div id="hud" class="topbar hidden">
+    <div class="hudbox">COINS <span id="hudCoins">0</span></div>
+    <div class="hudbox">LEVEL <span id="hudLevel">1</span></div>
+    <div class="hudbox">DIST <span id="hudDist">0</span>m</div>
+    <button id="pauseBtn" class="hudbox">Ⅱ</button>
+  </div>
+  <div id="progressWrap"><div id="progress"></div></div>
+
+  <div id="controls">
+    <button class="control" id="leftBtn">◀</button>
+    <div class="row" style="flex:0;gap:8px">
+      <button class="control" id="jumpBtn">▲</button>
+      <button class="control" id="slideBtn">▼</button>
+    </div>
+    <button class="control" id="rightBtn">▶</button>
+  </div>
+  <div id="toast"></div>
+
+  <section id="homeScreen" class="screen active">
+    <div class="panel">
+      <div class="tag">RUN & BUILD</div>
+      <h1 style="font-size:38px;margin-top:10px">Build the house as you run</h1>
+      <p class="sub">Collect materials, avoid obstacles, finish the house, unlock skins, upgrade, and climb through more levels.</p>
+      <div class="grid">
+        <div class="card"><b id="homeCoins">0</b><span>COINS</span></div>
+        <div class="card"><b id="homeBest">0</b><span>BEST DIST</span></div>
+        <div class="card"><b id="homeHouses">0</b><span>HOUSES</span></div>
+      </div>
+      <div class="sep"></div>
+      <div class="row">
+        <button class="primary" id="playBtn">PLAY</button>
+        <button id="shopBtn">SHOP</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button id="missionsBtn">MISSIONS</button>
+        <button id="dailyBtn">DAILY</button>
+        <button id="achievementsBtn">ACHIEVEMENTS</button>
+        <button id="settingsBtn">SETTINGS</button>
+      </div>
+      <div class="small-note">Rewarded ads and Play Store packaging can be added after the polish pass.</div>
+    </div>
+  </section>
+
+  <section id="pauseScreen" class="screen">
+    <div class="panel">
+      <h2>Paused</h2>
+      <p class="sub">Continue your run whenever you are ready.</p>
+      <div class="row">
+        <button class="primary" id="resumeBtn">RESUME</button>
+        <button id="pauseHomeBtn">HOME</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="gold" id="restartBtn">RESTART</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="gameOverScreen" class="screen">
+    <div class="panel">
+      <h2>Run Over</h2>
+      <p class="sub">Try again and beat your best distance.</p>
+      <div class="grid">
+        <div class="card"><b id="overCoins">0</b><span>RUN COINS</span></div>
+        <div class="card"><b id="overDist">0</b><span>DISTANCE</span></div>
+        <div class="card"><b id="overLevel">1</b><span>LEVEL</span></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="gold" id="reviveBtn">REVIVE</button>
+        <button class="primary" id="retryBtn">RETRY</button>
+      </div>
+      <button id="gameOverHomeBtn" style="width:100%;margin-top:10px">HOME</button>
+    </div>
+  </section>
+
+  <section id="buildScreen" class="screen">
+    <div class="panel">
+      <div class="tag">HOUSE COMPLETE</div>
+      <h2 style="font-size:32px;margin-top:10px">Level cleared</h2>
+      <p class="sub" id="buildSubtitle">Your collected materials were turned into a new house.</p>
+      <div class="grid">
+        <div class="card"><b id="buildReward">0</b><span>COINS</span></div>
+        <div class="card"><b id="buildNewLevel">1</b><span>NEXT LEVEL</span></div>
+        <div class="card"><b id="buildGoal">0</b><span>GOAL</span></div>
+      </div>
+      <div class="sep"></div>
+      <div class="card" style="padding:14px">
+        <div class="progressText"><span>BUILD PROGRESS</span><span id="buildText">0%</span></div>
+        <div class="bar"><i id="buildBar" style="width:0"></i></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="primary" id="nextLevelBtn">NEXT LEVEL</button>
+        <button id="buildHomeBtn">HOME</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="shopScreen" class="screen">
+    <div class="panel">
+      <div class="tag">SHOP</div>
+      <h2 style="font-size:32px;margin-top:10px">Cosmetics + upgrades</h2>
+      <div class="menu" style="margin:10px 0 14px">
+        <button class="primary" data-shoptab="skins">SKINS</button>
+        <button data-shoptab="upgrades">UPGRADES</button>
+        <button data-shoptab="trails">TRAILS</button>
+        <button data-shoptab="themes">THEMES</button>
+      </div>
+      <div id="shopList"></div>
+      <button id="shopBackBtn" style="width:100%;margin-top:10px">BACK</button>
+    </div>
+  </section>
+
+  <section id="missionsScreen" class="screen">
+    <div class="panel">
+      <div class="tag">MISSIONS</div>
+      <h2 style="font-size:32px;margin-top:10px">Daily goals</h2>
+      <div id="missionList"></div>
+      <button id="missionsBackBtn" style="width:100%;margin-top:10px">BACK</button>
+    </div>
+  </section>
+
+  <section id="dailyScreen" class="screen">
+    <div class="panel">
+      <div class="tag">DAILY REWARD</div>
+      <h2 style="font-size:32px;margin-top:10px">Come back every day</h2>
+      <p class="sub" id="dailyInfo">Your reward is ready.</p>
+      <div class="grid">
+        <div class="card"><b id="dailyCoins">100</b><span>COINS</span></div>
+        <div class="card"><b id="dailyStreak">1</b><span>STREAK</span></div>
+        <div class="card"><b id="dailyStatus">READY</b><span>STATUS</span></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="gold" id="claimDailyBtn">CLAIM</button>
+        <button id="dailyBackBtn">BACK</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="achievementsScreen" class="screen">
+    <div class="panel">
+      <div class="tag">ACHIEVEMENTS</div>
+      <h2 style="font-size:32px;margin-top:10px">Long-term progression</h2>
+      <div id="achievementList"></div>
+      <button id="achievementsBackBtn" style="width:100%;margin-top:10px">BACK</button>
+    </div>
+  </section>
+
+  <section id="settingsScreen" class="screen">
+    <div class="panel">
+      <div class="tag">SETTINGS</div>
+      <h2 style="font-size:32px;margin-top:10px">Audio + feedback</h2>
+      <div class="item">
+        <div class="meta"><b>Sound</b><small>Toggle music and effects.</small></div>
+        <button id="soundBtn">ON</button>
+      </div>
+      <div class="item">
+        <div class="meta"><b>Haptics</b><small>Device vibration feedback.</small></div>
+        <button id="hapticsBtn">ON</button>
+      </div>
+      <button id="settingsBackBtn" style="width:100%;margin-top:10px">BACK</button>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const SAVE_KEY = 'run_build_release_v2';
+  const $ = id => document.getElementById(id);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const fmt = n => Math.floor(n).toLocaleString();
+
+  const deepClone = obj => JSON.parse(JSON.stringify(obj));
+
+  const THEMES = [
+    {name:'Meadow', sky:0xcbeeff, fog:0xcfeeff, ground:0x7fd37b, road:0x586879, accent:0x67d98b, building:[0xaed7ff,0xdcecff,0xc8e0f5], sun:0xfff2c4},
+    {name:'Sunset', sky:0xffd5b6, fog:0xffe2cf, ground:0x8fcf74, road:0x6a5d58, accent:0xff9c6b, building:[0xffd1a6,0xffb8a2,0xf3d6b4], sun:0xffc36d},
+    {name:'City', sky:0xcfe1ff, fog:0xdbe9ff, ground:0x98a8b9, road:0x44515f, accent:0x7dc8ff, building:[0x9bb8d1,0xcbd8e5,0x8ba9c8], sun:0xe7f0ff},
+    {name:'Snow', sky:0xe8f7ff, fog:0xf3fbff, ground:0xd2e7ef, road:0x7b8792, accent:0xc9f4ff, building:[0xd8ecf6,0xe9f5fb,0xc6e3f4], sun:0xf4fdff},
+    {name:'Desert', sky:0xffe5bd, fog:0xffefd9, ground:0xcfa05b, road:0x6d5140, accent:0xffc86b, building:[0xe8c48a,0xf0d2ac,0xd9b77f], sun:0xffe39b}
+  ];
+
+  const SKINS = [
+    {id:'blue', name:'Starter Blue', cost:0, body:0x3f8cff, accent:0x17324f, glow:0x9fd0ff},
+    {id:'green', name:'Builder Green', cost:300, body:0x3dd07c, accent:0x1f8f52, glow:0x79ffa3},
+    {id:'purple', name:'Pro Purple', cost:650, body:0xa06fff, accent:0x6240c8, glow:0xd7bcff},
+    {id:'gold', name:'Golden Hero', cost:1200, body:0xffc83d, accent:0xc98a09, glow:0xfff0a2},
+    {id:'neon', name:'Neon Rush', cost:1800, body:0x46f7c5, accent:0x1c8b75, glow:0x8effe0},
+    {id:'red', name:'Red Blaze', cost:2000, body:0xff6e6e, accent:0xb83a3a, glow:0xffb5b5}
+  ];
+
+  const TRAILS = [
+    {id:'spark', name:'Spark Trail', cost:0, color:0xffffff},
+    {id:'blue', name:'Blue Trail', cost:250, color:0x86c4ff},
+    {id:'gold', name:'Gold Trail', cost:500, color:0xffcf59},
+    {id:'pink', name:'Pink Trail', cost:900, color:0xff98c8},
+    {id:'green', name:'Green Trail', cost:1200, color:0x77ffad}
+  ];
+
+  const UPG = {
+    speed:   {name:'Run Speed', desc:'Move faster and make the game feel smoother.', base:140, max:6},
+    magnet:  {name:'Magnet Range', desc:'Pull nearby pickups toward the player.', base:120, max:6},
+    multiplier:{name:'Coin Multiplier', desc:'Increase coin rewards from pickups.', base:180, max:6},
+    shield:  {name:'Shield Chance', desc:'Start runs with one shield that blocks a hit.', base:220, max:3}
+  };
+
+  const MISSIONS = [
+    {id:'m_materials', title:'Collector', desc:'Collect materials in runs.', stat:'totalMaterials', goal:100, reward:150},
+    {id:'m_distance', title:'Runner', desc:'Travel distance over time.', stat:'totalDistance', goal:2500, reward:200},
+    {id:'m_coins', title:'Rich Run', desc:'Earn coins from pickups and rewards.', stat:'totalCoins', goal:1500, reward:220},
+    {id:'m_houses', title:'Builder', desc:'Finish houses and clear levels.', stat:'housesBuilt', goal:5, reward:300}
+  ];
+
+  const ACH = [
+    {id:'a_first', title:'First House', desc:'Complete your first build.', stat:'housesBuilt', goal:1, reward:50},
+    {id:'a_runner', title:'Road Master', desc:'Reach 1000m total distance.', stat:'totalDistance', goal:1000, reward:100},
+    {id:'a_collector', title:'Material Pro', desc:'Collect 50 materials.', stat:'totalMaterials', goal:50, reward:75},
+    {id:'a_wealth', title:'Coin Fan', desc:'Earn 1000 coins in total.', stat:'totalCoins', goal:1000, reward:100},
+    {id:'a_level', title:'Level Up', desc:'Reach level 10.', stat:'bestLevel', goal:10, reward:150}
+  ];
+
+  const defaultSave = {
+    coins: 0,
+    bestDistance: 0,
+    bestLevel: 1,
+    totalDistance: 0,
+    totalCoins: 0,
+    totalMaterials: 0,
+    housesBuilt: 0,
+    currentLevel: 1,
+    runs: 0,
+    selectedSkin: 'blue',
+    selectedTrail: 'spark',
+    ownedSkins: ['blue'],
+    ownedTrails: ['spark'],
+    upgrades: {speed:0, magnet:0, multiplier:0, shield:0},
+    missions: Object.fromEntries(MISSIONS.map(m => [m.id, {progress:0, claimed:false}])),
+    achievements: Object.fromEntries(ACH.map(a => [a.id, false])),
+    daily: {last:'', streak:0},
+    settings: {sound:true, haptics:true}
+  };
+
+  const save = (() => {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return deepClone(defaultSave);
+      const data = JSON.parse(raw);
+      const merged = deepClone(defaultSave);
+      Object.assign(merged, data);
+      merged.upgrades = Object.assign(deepClone(defaultSave.upgrades), data.upgrades || {});
+      merged.missions = Object.assign(deepClone(defaultSave.missions), data.missions || {});
+      merged.achievements = Object.assign(deepClone(defaultSave.achievements), data.achievements || {});
+      merged.daily = Object.assign(deepClone(defaultSave.daily), data.daily || {});
+      merged.settings = Object.assign(deepClone(defaultSave.settings), data.settings || {});
+      if (!merged.currentLevel) merged.currentLevel = 1;
+      if (!merged.ownedSkins) merged.ownedSkins = ['blue'];
+      if (!merged.ownedTrails) merged.ownedTrails = ['spark'];
+      return merged;
+    } catch {
+      return deepClone(defaultSave);
+    }
+  })();
+
+  const game = {
+    running:false, paused:false, over:false, reviveUsed:false,
+    level: save.bestLevel || 1,
+    levelGoal: 16,
+    runCoins:0, runMaterials:0, runDistance:0, score:0,
+    lane:0, targetLane:0, jump:false, slide:false, slideTime:0, vy:0, y:0,
+    speed: 12,
+    spawnMeter:0,
+    nextObstacleAt: 0,
+    nextPickupAt: 0,
+    nextCoinAt: 0,
+    themeIndex: 0,
+    shield: 0,
+    camShake:0,
+    flash:0,
+    startY:0
+  };
+
+  let scene, camera, renderer, clock;
+  let player, playerShadow, playerBody, playerHead, playerShirt, trailGroup, worldGroup, roadGroup, decorGroup, itemGroup, cloudGroup, houseGroup;
+  let currentTab = 'skins';
+  let audioCtx = null;
+  let lastT = 0;
+  let items = [];
+  let particles = [];
+
+  function saveGame() {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+  }
+
+  function todayStr() {
+    return new Date().toISOString().slice(0,10);
+  }
+
+  function yesterdayStr() {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0,10);
+  }
+
+  function toast(msg, ms = 1500) {
+    const el = $('toast');
+    el.textContent = msg;
+    el.style.display = 'block';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => el.style.display = 'none', ms);
+  }
+
+  function setScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $(id).classList.add('active');
+  }
+
+  function playSound(type) {
+    if (!save.settings.sound) return;
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = audioCtx;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      const t = ctx.currentTime;
+      const opts = {
+        collect:[880,0.08,'triangle',0.07],
+        coin:[1200,0.08,'triangle',0.07],
+        jump:[480,0.11,'sine',0.08],
+        slide:[220,0.07,'square',0.03],
+        hit:[150,0.18,'sawtooth',0.06],
+        build:[260,0.22,'triangle',0.09],
+        button:[640,0.05,'sine',0.05],
+        unlock:[760,0.16,'triangle',0.07]
+      }[type] || [440,0.08,'sine',0.06];
+      o.type = opts[2]; o.frequency.setValueAtTime(opts[0], t);
+      g.gain.setValueAtTime(opts[3], t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + opts[1]);
+      o.start(t); o.stop(t + opts[1] + 0.02);
+    } catch {}
+  }
+
+  function vibrate(ms) {
+    if (save.settings.haptics && navigator.vibrate) {
+      try { navigator.vibrate(ms); } catch {}
+    }
+  }
+
+  function addCoins(amount) {
+    save.coins += amount;
+    save.totalCoins += amount;
+    game.runCoins += amount;
+    updateHUD();
+    syncMissions();
+    saveGame();
+  }
+
+  function addMaterials(amount) {
+    save.totalMaterials += amount;
+    game.runMaterials += amount;
+    updateHUD();
+    syncMissions();
+    saveGame();
+  }
+
+  function updateHome() {
+    $('homeCoins').textContent = fmt(save.coins);
+    $('homeBest').textContent = fmt(save.bestDistance);
+    $('homeHouses').textContent = fmt(save.housesBuilt);
+  }
+
+  function updateHUD() {
+    $('hudCoins').textContent = fmt(game.runCoins);
+    $('hudLevel').textContent = game.level;
+    $('hudDist').textContent = fmt(game.runDistance);
+    $('progress').style.width = clamp((game.runMaterials / game.levelGoal) * 100, 0, 100) + '%';
+  }
+
+  function updateDaily() {
+    const today = todayStr();
+    const claimed = save.daily.last === today;
+    const reward = 100 + save.daily.streak * 25;
+    $('dailyCoins').textContent = reward;
+    $('dailyStreak').textContent = Math.max(1, save.daily.streak || 1);
+    $('dailyStatus').textContent = claimed ? 'CLAIMED' : 'READY';
+    $('dailyInfo').textContent = claimed
+      ? 'You already claimed today. Come back tomorrow for the next reward.'
+      : `Claim your daily reward now. Streak bonus increases the next reward.`;
+    $('claimDailyBtn').disabled = claimed;
+  }
+
+  function renderAchievements() {
+    const wrap = $('achievementList');
+    wrap.innerHTML = '';
+    ACH.forEach(a => {
+      const done = !!save.achievements[a.id];
+      const current = save[a.stat] || 0;
+      const pct = clamp((current / a.goal) * 100, 0, 100);
+      wrap.insertAdjacentHTML('beforeend', `
+        <div class="item">
+          <div class="meta">
+            <b>${done ? '✓ ' : ''}${a.title}</b>
+            <small>${a.desc}<br>${fmt(current)}/${fmt(a.goal)}</small>
+            <div class="bar"><i style="width:${pct}%"></i></div>
+          </div>
+          <button ${done ? 'disabled' : ''} onclick="window.claimAchievement('${a.id}')">${done ? 'DONE' : a.reward + ' COINS'}</button>
+        </div>
+      `);
+    });
+  }
+
+  function syncMissions() {
+    const stats = {
+      totalMaterials: save.totalMaterials,
+      totalDistance: save.totalDistance + Math.floor(game.runDistance),
+      totalCoins: save.totalCoins + Math.floor(game.runCoins),
+      housesBuilt: save.housesBuilt
+    };
+    MISSIONS.forEach(m => {
+      const entry = save.missions[m.id];
+      if (!entry) save.missions[m.id] = {progress:0, claimed:false};
+      save.missions[m.id].progress = Math.max(save.missions[m.id].progress || 0, stats[m.stat]);
+    });
+    if (currentTab === 'missions') renderMissions();
+    saveGame();
+  }
+
+  function renderMissions() {
+    const wrap = $('missionList');
+    wrap.innerHTML = '';
+    MISSIONS.forEach(m => {
+      const entry = save.missions[m.id] || {progress:0, claimed:false};
+      const pct = clamp((entry.progress / m.goal) * 100, 0, 100);
+      const done = entry.progress >= m.goal;
+      wrap.insertAdjacentHTML('beforeend', `
+        <div class="item">
+          <div class="meta">
+            <b>${done ? '✓ ' : ''}${m.title}</b>
+            <small>${m.desc}<br>${fmt(entry.progress)}/${fmt(m.goal)} • Reward ${m.reward} coins</small>
+            <div class="bar"><i style="width:${pct}%"></i></div>
+          </div>
+          <button ${entry.claimed || !done ? 'disabled' : ''} onclick="window.claimMission('${m.id}')">${entry.claimed ? 'CLAIMED' : done ? 'CLAIM' : 'LOCKED'}</button>
+        </div>
+      `);
+    });
+  }
+
+  function checkAchievements() {
+    ACH.forEach(a => {
+      if (save.achievements[a.id]) return;
+      const current = save[a.stat] || 0;
+      if (current >= a.goal) {
+        save.achievements[a.id] = true;
+        save.coins += a.reward;
+        save.totalCoins += a.reward;
+        toast(`Achievement unlocked: ${a.title} (+${a.reward})`);
+        playSound('unlock');
+      }
+    });
+    saveGame();
+  }
+
+  window.claimMission = function(id) {
+    const m = MISSIONS.find(x => x.id === id);
+    const entry = save.missions[id];
+    if (!m || !entry || entry.claimed || entry.progress < m.goal) return;
+    entry.claimed = true;
+    save.coins += m.reward;
+    save.totalCoins += m.reward;
+    toast(`Mission claimed: +${m.reward}`);
+    playSound('unlock');
+    updateHome();
+    renderMissions();
+    saveGame();
+  };
+
+  window.claimAchievement = function(id) {
+    const a = ACH.find(x => x.id === id);
+    if (!a || !save.achievements[id]) return;
+    // achievements auto-grant in this build; button is just a visual marker
+  };
+
+  function themeForLevel(level) {
+    return THEMES[Math.floor((level - 1) / 3) % THEMES.length];
+  }
+
+  function applyTheme(theme) {
+    scene.background = new THREE.Color(theme.sky);
+    scene.fog = new THREE.Fog(theme.fog, 28, 130);
+    roadGroup.userData.baseColor = theme.road;
+    roadGroup.children.forEach(seg => {
+      if (seg.userData && seg.userData.base) seg.userData.base.material.color.setHex(theme.ground);
+      if (seg.userData && seg.userData.road) seg.userData.road.material.color.setHex(theme.road);
+      if (seg.userData && seg.userData.stripe) seg.userData.stripe.material.color.setHex(theme.accent);
+    });
+    decorGroup.children.forEach(c => {
+      if (c.userData && c.userData.kind === 'building') c.children[0].material.color.setHex(theme.building[(c.userData.variant || 0) % theme.building.length]);
+      if (c.userData && c.userData.kind === 'tree') {
+        c.children[0].material.color.setHex(theme.name === 'Snow' ? 0x7e5f46 : 0x8b5a3b);
+        c.children[1].material.color.setHex(theme.accent);
+      }
+    });
+  }
+
+  function resetRun() {
+    game.over = false;
+    game.paused = false;
+    game.reviveUsed = false;
+    game.runCoins = 0;
+    game.runMaterials = 0;
+    game.runDistance = 0;
+    game.score = 0;
+    game.lane = 0;
+    game.targetLane = 0;
+    game.jump = false;
+    game.slide = false;
+    game.slideTime = 0;
+    game.vy = 0;
+    game.y = 0;
+    game.camShake = 0;
+    game.flash = 0;
+    game.themeIndex = Math.floor((game.level - 1) / 3) % THEMES.length;
+    game.levelGoal = 14 + Math.floor(game.level * 2.2);
+    game.speed = 12 + save.upgrades.speed * 0.7 + game.level * 0.2;
+    game.shield = save.upgrades.shield > 0 ? 1 : 0;
+    clearWorld();
+    buildRoad();
+    buildDecor();
+    buildPlayer();
+    spawnAhead(10);
+    applyTheme(themeForLevel(game.level));
+    updateHUD();
+    syncMissions();
+  }
+
+  function clearWorld() {
+    [roadGroup, decorGroup, itemGroup, cloudGroup, worldGroup].forEach(g => {
+      if (!g) return;
+      [...g.children].forEach(child => g.remove(child));
+    });
+    items = [];
+    particles = [];
+  }
+
+  function buildRoad() {
+    const theme = themeForLevel(game.level);
+    for (let i = 0; i < 18; i++) {
+      const z = -i * 10;
+      const seg = new THREE.Group();
+      const base = new THREE.Mesh(new THREE.BoxGeometry(8, 0.18, 10), new THREE.MeshStandardMaterial({color: theme.ground, roughness: 1}));
+      base.position.y = -0.05;
+      base.receiveShadow = true;
+      seg.add(base);
+      const road = new THREE.Mesh(new THREE.BoxGeometry(7.35, 0.08, 10), new THREE.MeshStandardMaterial({color: theme.road, roughness: 1}));
+      road.position.y = 0.05;
+      road.receiveShadow = true;
+      seg.add(road);
+      const stripeGeo = new THREE.BoxGeometry(0.12, 0.05, 2.8);
+      const stripe = new THREE.Mesh(stripeGeo, new THREE.MeshStandardMaterial({color: theme.accent, roughness: 1}));
+      stripe.position.set(0, 0.11, 0);
+      seg.add(stripe);
+      const edgeMat = new THREE.MeshStandardMaterial({color: 0xd9e8f2, roughness: 1});
+      const edgeGeo = new THREE.BoxGeometry(0.18, 0.1, 10);
+      const e1 = new THREE.Mesh(edgeGeo, edgeMat), e2 = new THREE.Mesh(edgeGeo, edgeMat);
+      e1.position.set(-4.07, 0.02, 0); e2.position.set(4.07, 0.02, 0);
+      seg.add(e1, e2);
+      seg.position.z = z;
+      seg.userData = {base, road, stripe};
+      roadGroup.add(seg);
+    }
+  }
+
+  function buildDecor() {
+    const theme = themeForLevel(game.level);
+    for (let i = 0; i < 34; i++) {
+      addTree(-10 - i * 8, (i % 2 === 0 ? -1 : 1) * (7 + Math.random() * 4), 0.9 + Math.random() * 0.5);
+      if (i % 2 === 0) addBuilding(-14 - i * 8, (i % 4 < 2 ? -1 : 1) * (11 + Math.random() * 3), 2.4 + Math.random() * 3.6, i % 3);
+      if (i % 3 === 0) addCloud(-12 - i * 7, -8 + Math.random() * 4, 1 + Math.random() * 0.9);
+    }
+    const mountains = new THREE.Group();
+    for (let i = 0; i < 10; i++) {
+      const m = new THREE.Mesh(new THREE.ConeGeometry(3 + Math.random() * 2.5, 7 + Math.random() * 5, 4), new THREE.MeshStandardMaterial({color: theme.building[i % theme.building.length], roughness: 1}));
+      m.position.set(-22 + i * 5, 2 + Math.random(), -55 - Math.random() * 30);
+      m.rotation.y = Math.PI / 4;
+      mountains.add(m);
+    }
+    decorGroup.add(mountains);
+  }
+
+  function addBuilding(z, x, h, variant) {
+    const theme = themeForLevel(game.level);
+    const g = new THREE.Group();
+    g.userData = {kind:'building', variant};
+    const base = new THREE.Mesh(new THREE.BoxGeometry(2.0, h, 2.0), new THREE.MeshStandardMaterial({color: theme.building[variant % theme.building.length], roughness: 1}));
+    base.position.y = h / 2;
+    base.castShadow = true;
+    base.receiveShadow = true;
+    g.add(base);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.45, 1.15, 4), new THREE.MeshStandardMaterial({color: 0xd86a5d, roughness: 1}));
+    roof.position.y = h + 0.5;
+    roof.rotation.y = Math.PI / 4;
+    roof.castShadow = true;
+    g.add(roof);
+    g.position.set(x, 0, z);
+    decorGroup.add(g);
+  }
+
+  function addTree(z, x, scale = 1) {
+    const theme = themeForLevel(game.level);
+    const g = new THREE.Group();
+    g.userData = {kind:'tree'};
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.28 * scale, 1.0 * scale, 0.28 * scale), new THREE.MeshStandardMaterial({color: 0x8b5a3b, roughness: 1}));
+    trunk.position.y = 0.5 * scale;
+    const leaves = new THREE.Mesh(new THREE.ConeGeometry(0.8 * scale, 1.8 * scale, 5), new THREE.MeshStandardMaterial({color: theme.accent, roughness: 1}));
+    leaves.position.y = 1.7 * scale;
+    g.add(trunk, leaves);
+    g.position.set(x, 0, z);
+    decorGroup.add(g);
+  }
+
+  function addCloud(z, y, s = 1) {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({color: 0xffffff, transparent:true, opacity: 0.88, roughness: 1});
+    [0,0.38,-0.34,0.72].forEach((x,i) => {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.85 * s * (i===3 ? 0.86 : 1), 10, 8), mat);
+      m.position.set(x * s, i===1 ? 0.08*s : 0, i===2 ? 0.05*s : 0);
+      g.add(m);
+    });
+    g.position.set(rand(-13,13), y, z);
+    cloudGroup.add(g);
+  }
+
+  function buildPlayer() {
+    player = new THREE.Group();
+    player.position.set(0,0,1.5);
+
+    const shadowMat = new THREE.MeshBasicMaterial({color:0x1c2f44, transparent:true, opacity:.18});
+    playerShadow = new THREE.Mesh(new THREE.CircleGeometry(.78, 18), shadowMat);
+    playerShadow.rotation.x = -Math.PI / 2;
+    playerShadow.position.set(0,.02,0);
+    player.add(playerShadow);
+
+    playerBody = new THREE.Mesh(new THREE.BoxGeometry(1.05, 1.18, .72), new THREE.MeshStandardMaterial({color: 0x3f8cff, roughness: .85}));
+    playerBody.position.y = 1.22; playerBody.castShadow = true; player.add(playerBody);
+
+    playerShirt = new THREE.Mesh(new THREE.BoxGeometry(1.0, .72, .8), new THREE.MeshStandardMaterial({color: 0xffffff, roughness: .8}));
+    playerShirt.position.y = 1.52; playerShirt.castShadow = true; player.add(playerShirt);
+
+    playerHead = new THREE.Mesh(new THREE.SphereGeometry(.39, 12, 10), new THREE.MeshStandardMaterial({color:0xffd0a8, roughness: .85}));
+    playerHead.position.y = 2.18; playerHead.castShadow = true; player.add(playerHead);
+
+    const hair = new THREE.Mesh(new THREE.SphereGeometry(.42, 12, 8), new THREE.MeshStandardMaterial({color:0x3a2417, roughness: 1}));
+    hair.scale.y = .55; hair.position.y = 2.45; hair.castShadow = true; player.add(hair);
+
+    const backpack = new THREE.Mesh(new THREE.BoxGeometry(.42, .7, .38), new THREE.MeshStandardMaterial({color:0xff8b6b, roughness: .9}));
+    backpack.position.set(.54, 1.42, 0); backpack.castShadow = true; player.add(backpack);
+
+    const legGeo = new THREE.BoxGeometry(.26, .82, .28);
+    const legMat = new THREE.MeshStandardMaterial({color:0x2c3e55, roughness: 1});
+    const legL = new THREE.Mesh(legGeo, legMat); legL.position.set(-.22,.4,0); legL.castShadow = true;
+    const legR = new THREE.Mesh(legGeo, legMat); legR.position.set(.22,.4,0); legR.castShadow = true;
+    player.add(legL, legR);
+
+    const armGeo = new THREE.BoxGeometry(.2, .72, .2);
+    const armMat = new THREE.MeshStandardMaterial({color:0x3f8cff, roughness: .85});
+    const armL = new THREE.Mesh(armGeo, armMat); armL.position.set(-.6,1.23,0); armL.rotation.z = -.2; armL.castShadow = true;
+    const armR = new THREE.Mesh(armGeo, armMat); armR.position.set(.6,1.23,0); armR.rotation.z = .2; armR.castShadow = true;
+    player.add(armL, armR);
+
+    trailGroup = new THREE.Group();
+    player.add(trailGroup);
+
+    worldGroup.add(player);
+    applySkin(save.selectedSkin);
+  }
+
+  function applySkin(id) {
+    const skin = SKINS.find(s => s.id === id) || SKINS[0];
+    playerBody.material.color.setHex(skin.body);
+    playerShirt.material.color.setHex(skin.accent);
+    playerHead.material.color.setHex(0xffd0a8);
+    player.children[4].material.color.setHex(0x3a2417); // hair
+    trailGroup.userData.trail = TRAILS.find(t => t.id === save.selectedTrail) || TRAILS[0];
+    playerShadow.material.opacity = 0.18;
+  }
+
+  function spawnCoin(z, lane) {
+    const g = new THREE.Group();
+    const ring = new THREE.Mesh(new THREE.CylinderGeometry(.34, .34, .12, 18), new THREE.MeshStandardMaterial({color:0xffcf4b, metalness:.6, roughness:.35}));
+    ring.rotation.x = Math.PI / 2;
+    ring.castShadow = true;
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(.48, 10, 8), new THREE.MeshBasicMaterial({color:0xffcf4b, transparent:true, opacity:.14}));
+    g.add(ring, halo);
+    g.position.set(lane * 2.2, 1.08, z);
+    itemGroup.add(g);
+    items.push({kind:'coin', lane, mesh:g, radius:1.05, bob:Math.random()*Math.PI*2, dead:false});
+  }
+
+  function spawnMaterial(kind, z, lane) {
+    const colors = {wood:0xb07742, brick:0xd95f51, glass:0x6dd1ef, roof:0xa05cf4};
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(.6,.6,.6), new THREE.MeshStandardMaterial({color:colors[kind], roughness:.8}));
+    body.castShadow = true;
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(.48, 10, 8), new THREE.MeshBasicMaterial({color:colors[kind], transparent:true, opacity:.16}));
+    g.add(body, halo);
+    g.position.set(lane * 2.2, .62, z);
+    itemGroup.add(g);
+    items.push({kind:'material', type:kind, lane, mesh:g, radius:1.05, bob:Math.random()*Math.PI*2, dead:false});
+  }
+
+  function spawnObstacle(z, lane) {
+    const theme = themeForLevel(game.level);
+    const type = ['barrel','cone','hurdle'][Math.floor(Math.random() * 3)];
+    const g = new THREE.Group();
+    if (type === 'barrel') {
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(.55,.6,1.0,10), new THREE.MeshStandardMaterial({color:theme.name==='City'?0x607080:0xe76660, roughness:1}));
+      body.rotation.z = Math.PI / 2; body.castShadow = true; g.add(body);
+    } else if (type === 'cone') {
+      const body = new THREE.Mesh(new THREE.ConeGeometry(.58,1.2,4), new THREE.MeshStandardMaterial({color:0xff8b49, roughness:1}));
+      body.castShadow = true; g.add(body);
+      const top = new THREE.Mesh(new THREE.BoxGeometry(.22,.22,.22), new THREE.MeshStandardMaterial({color:0xffffff, roughness:1}));
+      top.position.y = .56; g.add(top);
+    } else {
+      const base = new THREE.Mesh(new THREE.BoxGeometry(1.4,.4,.8), new THREE.MeshStandardMaterial({color:0x5e6571, roughness:1}));
+      const pole = new THREE.Mesh(new THREE.BoxGeometry(.3,1.2,.3), new THREE.MeshStandardMaterial({color:0xeed17a, roughness:1}));
+      base.position.y = .2; pole.position.y = .98; g.add(base, pole);
+    }
+    g.position.set(lane * 2.2, 0, z);
+    itemGroup.add(g);
+    items.push({kind:'obstacle', type, lane, mesh:g, radius:1.0, dead:false});
+  }
+
+  function spawnAhead(count = 4) {
+    while (items.filter(i => !i.dead).length < count) {
+      const lane = Math.floor(Math.random() * 3) - 1;
+      const z = -55 - Math.random() * 55 - items.length * 1.9;
+      const r = Math.random();
+      if (r < 0.28) spawnCoin(z, lane);
+      else if (r < 0.72) spawnMaterial(['wood','brick','glass','roof'][Math.floor(Math.random() * 4)], z, lane);
+      else spawnObstacle(z, lane);
+    }
+  }
+
+  function clearItems() {
+    items.forEach(it => it.mesh && it.mesh.parent && it.mesh.parent.remove(it.mesh));
+    items = [];
+  }
+
+  function spawnBurst(x, y, color, n = 14) {
+    for (let i = 0; i < n; i++) {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(.06 + Math.random() * .05, 8, 6), new THREE.MeshBasicMaterial({color, transparent:true, opacity:1}));
+      m.position.set(x, y, 0);
+      m.userData = {vx: (Math.random() -.5) * 6, vy: Math.random() * 5 + 2, vz: (Math.random() -.5) * 4, life: 1};
+      scene.add(m); particles.push(m);
+    }
+  }
+
+  function updateParticles(dt) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.userData.life -= dt * 1.6;
+      p.position.x += p.userData.vx * dt;
+      p.position.y += p.userData.vy * dt;
+      p.position.z += p.userData.vz * dt;
+      p.userData.vy -= 8 * dt;
+      p.material.opacity = Math.max(0, p.userData.life);
+      if (p.userData.life <= 0) {
+        scene.remove(p);
+        particles.splice(i, 1);
+      }
+    }
+  }
+
+  function setThemeByLevel(level) {
+    const theme = themeForLevel(level);
+    applyTheme(theme);
+  }
+
+  function completeLevel() {
+    game.running = false;
+    const reward = 120 + game.level * 30 + Math.floor(game.runMaterials * 1.25);
+    save.coins += reward;
+    save.totalCoins += reward;
+    save.housesBuilt += 1;
+    save.bestLevel = Math.max(save.bestLevel, game.level);
+    save.totalDistance += Math.floor(game.runDistance);
+    save.currentLevel = Math.max(save.currentLevel || 1, game.level + 1);
+    game.level += 1;
+    game.score = Math.floor(game.runDistance * 2) + game.runMaterials * 8;
+    $('buildReward').textContent = fmt(reward);
+    $('buildNewLevel').textContent = game.level;
+    $('buildGoal').textContent = game.levelGoal;
+    $('buildBar').style.width = '100%';
+    $('buildText').textContent = '100%';
+    $('buildSubtitle').textContent = `New level unlocked. Difficulty increases, but rewards increase too.`;
+    setScreen('buildScreen');
+    saveGame(); updateHome(); syncMissions(); checkAchievements();
+    playSound('build'); vibrate(30);
+  }
+
+  function gameOver() {
+    game.running = false;
+    game.over = true;
+    save.bestDistance = Math.max(save.bestDistance, game.runDistance);
+    save.bestLevel = Math.max(save.bestLevel, game.level);
+    save.totalDistance += Math.floor(game.runDistance);
+    saveGame();
+    $('overCoins').textContent = fmt(game.runCoins);
+    $('overDist').textContent = fmt(game.runDistance);
+    $('overLevel').textContent = game.level;
+    $('reviveBtn').style.display = game.reviveUsed ? 'none' : 'block';
+    setScreen('gameOverScreen');
+  }
+
+  function revive() {
+    if (!game.over || game.reviveUsed) return;
+    game.reviveUsed = true;
+    toast('Watching reward ad...');
+    const overlay = $('toast');
+    setTimeout(() => {
+      setScreen('homeScreen'); // clear first
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      $('hud').classList.remove('hidden');
+      $('progressWrap').style.display = 'block';
+      $('controls').style.display = 'flex';
+      game.running = true;
+      game.over = false;
+      game.shield = 1;
+      $('reviveBtn').style.display = 'none';
+      toast('Revived!');
+    }, 1100);
+  }
+
+  function beginRun() {
+    game.level = save.currentLevel || 1;
+    game.levelGoal = 14 + Math.floor(game.level * 2.2);
+    game.runCoins = 0;
+    game.runMaterials = 0;
+    game.runDistance = 0;
+    game.speed = 12 + save.upgrades.speed * 0.7 + game.level * 0.2;
+    game.lane = 0;
+    game.targetLane = 0;
+    game.jump = false;
+    game.slide = false;
+    game.slideTime = 0;
+    game.vy = 0;
+    game.y = 0;
+    game.camShake = 0;
+    game.flash = 0;
+    game.shield = save.upgrades.shield > 0 ? 1 : 0;
+    game.running = true;
+    game.paused = false;
+    game.over = false;
+    game.reviveUsed = false;
+    resetRun();
+    $('hud').classList.remove('hidden');
+    $('progressWrap').style.display = 'block';
+    $('controls').style.display = 'flex';
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    updateHUD();
+    setThemeByLevel(game.level);
+    playSound('button');
+  }
+
+
+  function moveLane(dir) {
+    if (!game.running || game.paused) return;
+    game.targetLane = clamp(game.targetLane + dir, -1, 1);
+    playSound('button');
+  }
+
+  function jumpAction() {
+    if (!game.running || game.paused || game.jump) return;
+    game.jump = true;
+    game.vy = 8.2;
+    playSound('jump');
+    vibrate(10);
+  }
+
+  function slideAction() {
+    if (!game.running || game.paused || game.slide) return;
+    game.slide = true;
+    game.slideTime = 0.55;
+    playSound('slide');
+    vibrate(12);
+  }
+
+  function collectItem(it) {
+    if (it.dead) return;
+    it.dead = true;
+    const color = it.kind === 'coin' ? 0xffcf4b : it.kind === 'wood' ? 0xb07742 : it.kind === 'brick' ? 0xd95f51 : it.kind === 'glass' ? 0x6dd1ef : 0xa05cf4;
+    if (it.kind === 'coin') {
+      const mult = 1 + save.upgrades.multiplier * 0.18;
+      const gain = Math.max(1, Math.round(mult));
+      game.runCoins += gain;
+      addCoins(gain);
+      spawnBurst(it.mesh.position.x, it.mesh.position.y, color, 10);
+      playSound('coin');
+    } else {
+      game.runMaterials += 1;
+      addMaterials(1);
+      spawnBurst(it.mesh.position.x, it.mesh.position.y, color, 8);
+      playSound('collect');
+      if (game.runMaterials >= game.levelGoal) {
+        completeLevel();
+      }
+    }
+    it.mesh.visible = false;
+    syncMissions();
+  }
+
+  function hitObstacle(it) {
+    if (game.shield > 0) {
+      game.shield = 0;
+      it.dead = true;
+      spawnBurst(it.mesh.position.x, it.mesh.position.y, 0xffffff, 16);
+      toast('Shield saved you!');
+      playSound('build');
+      vibrate(20);
+      it.mesh.visible = false;
+      return;
+    }
+    it.dead = true;
+    it.mesh.visible = false;
+    gameOver();
+    playSound('hit');
+    vibrate(60);
+  }
+
+  function updateGameplay(dt) {
+    const targetX = game.targetLane * 2.2;
+    game.lane = lerp(game.lane, game.targetLane, clamp(dt * 10, 0, 1));
+    player.position.x = lerp(player.position.x, targetX, clamp(dt * 11, 0, 1));
+    player.rotation.y = lerp(player.rotation.y, (game.targetLane - game.lane) * 0.08, clamp(dt * 8, 0, 1));
+
+    // jump / slide
+    if (game.jump) {
+      game.y += game.vy * dt;
+      game.vy -= 22 * dt;
+      if (game.y <= 0) {
+        game.y = 0; game.vy = 0; game.jump = false;
+      }
+    }
+    player.position.y = game.y;
+
+    if (game.slide) {
+      game.slideTime -= dt;
+      player.scale.y = 0.58;
+      player.position.y = game.y + 0.05;
+      if (game.slideTime <= 0) {
+        game.slide = false;
+        player.scale.y = 1;
+      }
+    } else {
+      player.scale.y = 1;
+    }
+
+    // movement speed
+    const speed = game.speed + save.upgrades.speed * 0.75 + Math.min(8, game.level * 0.22);
+    game.runDistance += speed * dt;
+    game.score = Math.floor(game.runDistance * 2) + game.runMaterials * 8;
+    if (game.runDistance > save.bestDistance) save.bestDistance = game.runDistance;
+
+    // camera follow
+    camera.position.x = lerp(camera.position.x, player.position.x * 0.12, clamp(dt * 3.5, 0, 1));
+    camera.position.y = lerp(camera.position.y, 5.6 + (game.y * 0.18), clamp(dt * 2.8, 0, 1));
+    camera.position.z = lerp(camera.position.z, 8.4, clamp(dt * 2.2, 0, 1));
+    camera.lookAt(player.position.x * 0.14, 1.6, -15);
+
+    // road recycle
+    roadGroup.children.forEach(seg => {
+      seg.position.z += speed * dt;
+      if (seg.position.z > 10) seg.position.z -= 180;
+    });
+
+    // decor movement
+    decorGroup.children.forEach(o => {
+      o.position.z += speed * dt * 0.88;
+      if (o.position.z > 14) o.position.z -= 300;
+      o.rotation.y += dt * 0.12;
+    });
+    cloudGroup.children.forEach(c => {
+      c.position.z += dt * 1.2;
+      if (c.position.z > 18) c.position.z = -120 - Math.random() * 30;
+    });
+
+    // items
+    items.forEach(it => {
+      if (it.dead) return;
+      it.mesh.position.z += speed * dt;
+      if (it.kind === 'coin' || it.kind === 'material') {
+        it.mesh.position.y = (it.kind === 'coin' ? 1.08 : 0.62) + Math.sin(performance.now() * 0.003 + it.bob) * 0.06;
+        it.mesh.rotation.y += dt * 3.5;
+      }
+      if (it.kind === 'obstacle') it.mesh.rotation.y += dt * 1.2;
+      const dx = Math.abs(it.mesh.position.x - player.position.x);
+      const dz = Math.abs(it.mesh.position.z - player.position.z);
+      const nearLane = dx < 0.78;
+      const nearZ = dz < 1.25;
+      const isPassing = it.mesh.position.z > -0.2 && it.mesh.position.z < 1.8;
+
+      if (it.kind === 'coin' && nearLane && nearZ) collectItem(it);
+      if ((it.kind === 'material') && nearLane && nearZ) collectItem(it);
+      if (it.kind === 'obstacle' && nearLane && isPassing) {
+        if (game.jump) return;
+        if (game.slide && it.type === 'hurdle') return;
+        hitObstacle(it);
+      }
+      if (it.mesh.position.z > 10) it.dead = true;
+    });
+    items = items.filter(it => !it.dead && it.mesh.position.z <= 12);
+    items.forEach(it => { if (it.dead && it.mesh.parent) it.mesh.parent.remove(it.mesh); });
+
+    // spawn more
+    game.spawnMeter += dt * speed;
+    const spawnInterval = clamp(1.0 - game.level * 0.02, 0.48, 0.95);
+    if (game.spawnMeter > spawnInterval) {
+      game.spawnMeter = 0;
+      const lane = Math.floor(Math.random() * 3) - 1;
+      const z = -75 - Math.random() * 10;
+      const roll = Math.random();
+      if (roll < 0.22) spawnCoin(z, lane);
+      else if (roll < 0.68) spawnMaterial(['wood','brick','glass','roof'][Math.floor(Math.random() * 4)], z, lane);
+      else spawnObstacle(z, lane);
+    }
+    spawnAhead(16);
+
+    // trail particles
+    if (save.selectedTrail && game.running && !game.paused) {
+      const trail = TRAILS.find(t => t.id === save.selectedTrail) || TRAILS[0];
+      if (Math.random() < 0.42) {
+        const p = new THREE.Mesh(new THREE.SphereGeometry(.05 + Math.random() * .03, 8, 6), new THREE.MeshBasicMaterial({color: trail.color, transparent:true, opacity:.88}));
+        p.position.set(player.position.x - 0.45 + Math.random() * .1, 0.4 + Math.random() * .25, player.position.z + 0.2);
+        p.userData = {vx: (Math.random() - .5) * 1.2, vy: Math.random() * .55, life: 1};
+        scene.add(p); particles.push(p);
+      }
+    }
+
+    updateParticles(dt);
+    updateHUD();
+
+    // level completion when materials reached
+    if (game.runMaterials >= game.levelGoal) {
+      completeLevel();
+    }
+  }
+
+  function loop(t) {
+    requestAnimationFrame(loop);
+    const dt = Math.min(0.035, (t - lastT) / 1000 || 0);
+    lastT = t;
+
+    if (game.running && !game.paused && !game.over) {
+      updateGameplay(dt);
+      game.camShake = Math.max(0, game.camShake - dt * 2);
+      if (game.flash > 0) game.flash = Math.max(0, game.flash - dt * 2);
+    }
+
+    renderer.render(scene, camera);
+  }
+
+  function init3D() {
+    clock = new THREE.Clock();
+    renderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    $('app').prepend(renderer.domElement);
+
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 200);
+    camera.position.set(0, 5.7, 8.4);
+    camera.lookAt(0, 1.6, -14);
+
+    const hemi = new THREE.HemisphereLight(0xffffff, 0xb5d5e8, 1.85);
+    scene.add(hemi);
+    const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+    sun.position.set(10, 15, 8);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    scene.add(sun);
+
+    worldGroup = new THREE.Group();
+    roadGroup = new THREE.Group();
+    decorGroup = new THREE.Group();
+    itemGroup = new THREE.Group();
+    cloudGroup = new THREE.Group();
+    houseGroup = new THREE.Group();
+    worldGroup.add(roadGroup, decorGroup, itemGroup, cloudGroup, houseGroup);
+    scene.add(worldGroup);
+
+    buildPlayer();
+    setThemeByLevel(game.level);
+    buildRoad();
+    buildDecor();
+
+    const houseBase = new THREE.Mesh(new THREE.BoxGeometry(4.2, 2.3, 3.8), new THREE.MeshStandardMaterial({color:0xf0c47b, roughness:1}));
+    houseBase.position.set(9, 1.15, -78);
+    const houseRoof = new THREE.Mesh(new THREE.ConeGeometry(2.95, 1.35, 4), new THREE.MeshStandardMaterial({color:0xd85e59, roughness:1}));
+    houseRoof.position.set(9, 2.85, -78); houseRoof.rotation.y = Math.PI / 4;
+    const door = new THREE.Mesh(new THREE.BoxGeometry(.55, .85, .15), new THREE.MeshStandardMaterial({color:0x7b4d38, roughness:1}));
+    door.position.set(9, .55, -76.05);
+    houseGroup.add(houseBase, houseRoof, door);
+
+    window.addEventListener('resize', resize);
+    resize();
+    $('loading').remove();
+    requestAnimationFrame(loop);
+  }
+
+  function resize() {
+    if (!camera || !renderer) return;
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  }
+
+  function pauseGame() {
+    if (!game.running || game.over) return;
+    game.paused = true;
+    $('hud').classList.add('hidden');
+    $('progressWrap').style.display = 'none';
+    $('controls').style.display = 'none';
+    setScreen('pauseScreen');
+    playSound('button');
+  }
+
+  function resumeGame() {
+    if (!game.running || game.over) return;
+    game.paused = false;
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $('hud').classList.remove('hidden');
+    $('progressWrap').style.display = 'block';
+    $('controls').style.display = 'flex';
+    playSound('button');
+  }
+
+  function backHome() {
+    game.running = false;
+    game.paused = false;
+    game.over = false;
+    clearWorld();
+    buildRoad();
+    buildDecor();
+    buildPlayer();
+    $('hud').classList.add('hidden');
+    $('progressWrap').style.display = 'none';
+    $('controls').style.display = 'none';
+    updateHome();
+    setScreen('homeScreen');
+    saveGame();
+  }
+
+  function renderShop() {
+    const wrap = $('shopList');
+    wrap.innerHTML = '';
+    if (currentTab === 'skins') {
+      SKINS.forEach(s => {
+        const owned = save.ownedSkins.includes(s.id);
+        const selected = save.selectedSkin === s.id;
+        wrap.insertAdjacentHTML('beforeend', `
+          <div class="item">
+            <div class="skinSwatch" style="background:#${s.body.toString(16).padStart(6,'0')}"></div>
+            <div class="meta">
+              <b>${s.name}</b>
+              <small>${selected ? 'Equipped' : owned ? 'Owned' : s.cost + ' coins'}</small>
+            </div>
+            <button onclick="window.buySkin('${s.id}')">${selected ? 'EQUIPPED' : owned ? 'USE' : 'BUY'}</button>
+          </div>
+        `);
+      });
+    } else if (currentTab === 'upgrades') {
+      Object.entries(UPG).forEach(([key, u]) => {
+        const lvl = save.upgrades[key] || 0;
+        const cost = Math.floor(u.base * Math.pow(1.5, lvl));
+        const pct = clamp((lvl / u.max) * 100, 0, 100);
+        wrap.insertAdjacentHTML('beforeend', `
+          <div class="item">
+            <div class="meta">
+              <b>${u.name} ${lvl}/${u.max}</b>
+              <small>${u.desc}<br>Cost: ${cost} coins</small>
+              <div class="bar"><i style="width:${pct}%"></i></div>
+            </div>
+            <button ${lvl >= u.max ? 'disabled' : ''} onclick="window.buyUpgrade('${key}')">${lvl >= u.max ? 'MAX' : 'BUY'}</button>
+          </div>
+        `);
+      });
+    } else if (currentTab === 'trails') {
+      TRAILS.forEach(t => {
+        const owned = save.ownedTrails.includes(t.id);
+        const selected = save.selectedTrail === t.id;
+        wrap.insertAdjacentHTML('beforeend', `
+          <div class="item">
+            <div class="skinSwatch" style="background:#${t.color.toString(16).padStart(6,'0')}"></div>
+            <div class="meta">
+              <b>${t.name}</b>
+              <small>${selected ? 'Equipped' : owned ? 'Owned' : t.cost + ' coins'}</small>
+            </div>
+            <button onclick="window.buyTrail('${t.id}')">${selected ? 'EQUIPPED' : owned ? 'USE' : 'BUY'}</button>
+          </div>
+        `);
+      });
+    } else if (currentTab === 'themes') {
+      THEMES.forEach((t, i) => {
+        wrap.insertAdjacentHTML('beforeend', `
+          <div class="item">
+            <div class="skinSwatch" style="background:#${t.sky.toString(16).padStart(6,'0')}"></div>
+            <div class="meta">
+              <b>${t.name} Theme</b>
+              <small>Unlock by progressing through more levels. ${i < 2 ? 'Available early.' : 'Later biomes.'}</small>
+            </div>
+            <button disabled>${i < Math.floor((game.level - 1) / 3) ? 'UNLOCKED' : 'LOCKED'}</button>
+          </div>
+        `);
+      });
+    }
+  }
+
+  function renderMissionScreen() {
+    renderMissions();
+  }
+
+  function buyUpgrade(type) {
+    const u = UPG[type];
+    const lvl = save.upgrades[type] || 0;
+    if (lvl >= u.max) return;
+    const cost = Math.floor(u.base * Math.pow(1.5, lvl));
+    if (save.coins < cost) return toast('Not enough coins');
+    save.coins -= cost;
+    save.upgrades[type] = lvl + 1;
+    saveGame(); updateHome(); renderShop(); playSound('unlock'); toast('Upgrade purchased!');
+  }
+
+  function buySkin(id) {
+    const s = SKINS.find(x => x.id === id);
+    if (!s) return;
+    if (!save.ownedSkins.includes(id)) {
+      if (save.coins < s.cost) return toast('Not enough coins');
+      save.coins -= s.cost;
+      save.ownedSkins.push(id);
+      playSound('unlock');
+      toast('Skin unlocked!');
+    }
+    save.selectedSkin = id;
+    applySkin(id);
+    saveGame(); updateHome(); renderShop();
+  }
+
+  function buyTrail(id) {
+    const t = TRAILS.find(x => x.id === id);
+    if (!t) return;
+    if (!save.ownedTrails.includes(id)) {
+      if (save.coins < t.cost) return toast('Not enough coins');
+      save.coins -= t.cost;
+      save.ownedTrails.push(id);
+      playSound('unlock');
+      toast('Trail unlocked!');
+    }
+    save.selectedTrail = id;
+    applySkin(save.selectedSkin);
+    saveGame(); updateHome(); renderShop();
+  }
+
+  window.buyUpgrade = buyUpgrade;
+  window.buySkin = buySkin;
+  window.buyTrail = buyTrail;
+
+  function claimDailyReward() {
+    const today = todayStr();
+    if (save.daily.last === today) return toast('Already claimed today');
+    if (save.daily.last === yesterdayStr()) save.daily.streak = Math.min(7, (save.daily.streak || 0) + 1);
+    else save.daily.streak = 1;
+    save.daily.last = today;
+    const reward = 100 + save.daily.streak * 25;
+    save.coins += reward;
+    save.totalCoins += reward;
+    saveGame(); updateHome(); updateDaily(); playSound('unlock'); toast(`Daily reward +${reward}`);
+  }
+
+  function nextLevel() {
+    $('buildScreen').classList.remove('active');
+    game.level = save.currentLevel || (game.level + 1);
+    game.running = true;
+    resetRun();
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $('hud').classList.remove('hidden');
+    $('progressWrap').style.display = 'block';
+    $('controls').style.display = 'flex';
+    game.levelGoal = 14 + Math.floor(game.level * 2.2);
+    setThemeByLevel(game.level);
+    updateHUD();
+    playSound('button');
+  }
+
+  function showBuildScreen() {
+    const reward = 120 + game.level * 30 + Math.floor(game.runMaterials * 1.25);
+    save.coins += reward;
+    save.totalCoins += reward;
+    save.housesBuilt += 1;
+    save.bestLevel = Math.max(save.bestLevel, game.level);
+    save.totalDistance += Math.floor(game.runDistance);
+    saveGame();
+    checkAchievements();
+    $('buildReward').textContent = fmt(reward);
+    $('buildNewLevel').textContent = save.currentLevel || (game.level + 1);
+    $('buildGoal').textContent = game.levelGoal;
+    $('buildText').textContent = '100%';
+    $('buildBar').style.width = '100%';
+    setScreen('buildScreen');
+    $('hud').classList.add('hidden');
+    $('progressWrap').style.display = 'none';
+    $('controls').style.display = 'none';
+    playSound('build');
+    vibrate(25);
+  }
+
+  function maybeFinishLevel() {
+    if (game.runMaterials < game.levelGoal) return;
+    game.running = false;
+    showBuildScreen();
+  }
+
+  function updateLabels() {
+    updateHome();
+    updateDaily();
+    renderAchievements();
+    renderMissions();
+    $('soundBtn').textContent = save.settings.sound ? 'ON' : 'OFF';
+    $('hapticsBtn').textContent = save.settings.haptics ? 'ON' : 'OFF';
+  }
+
+  function bindUI() {
+    $('playBtn').onclick = () => { playSound('button'); beginRun(); };
+    $('retryBtn').onclick = () => { playSound('button'); beginRun(); };
+    $('reviveBtn').onclick = () => { playSound('button'); revive(); };
+    $('gameOverHomeBtn').onclick = () => { playSound('button'); backHome(); };
+    $('pauseHomeBtn').onclick = () => { playSound('button'); backHome(); };
+    $('restartBtn').onclick = () => { playSound('button'); beginRun(); };
+    $('resumeBtn').onclick = () => resumeGame();
+    $('pauseBtn').onclick = () => pauseGame();
+    $('buildHomeBtn').onclick = () => { playSound('button'); backHome(); };
+    $('nextLevelBtn').onclick = () => { playSound('button'); nextLevel(); };
+
+    $('shopBtn').onclick = () => { currentTab = 'skins'; renderShop(); updateLabels(); setScreen('shopScreen'); };
+    $('missionsBtn').onclick = () => { renderMissions(); setScreen('missionsScreen'); };
+    $('dailyBtn').onclick = () => { updateDaily(); setScreen('dailyScreen'); };
+    $('achievementsBtn').onclick = () => { renderAchievements(); setScreen('achievementsScreen'); };
+    $('settingsBtn').onclick = () => { $('soundBtn').textContent = save.settings.sound ? 'ON' : 'OFF'; $('hapticsBtn').textContent = save.settings.haptics ? 'ON' : 'OFF'; setScreen('settingsScreen'); };
+
+    $('shopBackBtn').onclick = () => { playSound('button'); setScreen('homeScreen'); updateHome(); };
+    $('missionsBackBtn').onclick = () => setScreen('homeScreen');
+    $('dailyBackBtn').onclick = () => setScreen('homeScreen');
+    $('achievementsBackBtn').onclick = () => setScreen('homeScreen');
+    $('settingsBackBtn').onclick = () => setScreen('homeScreen');
+
+    $('claimDailyBtn').onclick = claimDailyReward;
+    $('soundBtn').onclick = () => { save.settings.sound = !save.settings.sound; $('soundBtn').textContent = save.settings.sound ? 'ON' : 'OFF'; saveGame(); playSound('button'); };
+    $('hapticsBtn').onclick = () => { save.settings.haptics = !save.settings.haptics; $('hapticsBtn').textContent = save.settings.haptics ? 'ON' : 'OFF'; saveGame(); vibrate(15); playSound('button'); };
+
+    document.querySelectorAll('[data-shoptab]').forEach(btn => {
+      btn.onclick = () => {
+        currentTab = btn.dataset.shoptab;
+        document.querySelectorAll('[data-shoptab]').forEach(b => b.classList.remove('primary'));
+        btn.classList.add('primary');
+        renderShop();
+      };
+    });
+
+    $('leftBtn').onclick = () => moveLane(-1);
+    $('rightBtn').onclick = () => moveLane(1);
+    $('jumpBtn').onclick = () => jumpAction();
+    $('slideBtn').onclick = () => slideAction();
+
+    addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft' || e.key === 'a') moveLane(-1);
+      if (e.key === 'ArrowRight' || e.key === 'd') moveLane(1);
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') { e.preventDefault(); jumpAction(); }
+      if (e.key === 'ArrowDown' || e.key === 's') slideAction();
+      if (e.key === 'Escape') {
+        if (game.paused) resumeGame();
+        else if (game.running) pauseGame();
+      }
+    });
+
+    let sx = 0, sy = 0;
+    addEventListener('touchstart', e => { if (!e.touches.length) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
+    addEventListener('touchend', e => {
+      if (!e.changedTouches.length) return;
+      const dx = e.changedTouches[0].clientX - sx;
+      const dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) < 40 && Math.abs(dy) < 40) { jumpAction(); return; }
+      if (Math.abs(dx) > Math.abs(dy)) moveLane(dx > 0 ? 1 : -1);
+      else if (dy < 0) jumpAction(); else slideAction();
+    }, {passive:true});
+  }
+
+  function init() {
+    init3D();
+    bindUI();
+    updateHome();
+    updateLabels();
+    $('loading').remove();
+    setScreen('homeScreen');
+    renderShop();
+    renderMissions();
+    renderAchievements();
+    updateDaily();
+    applySkin(save.selectedSkin);
+    syncMissions();
+    setThemeByLevel(game.level);
+    addEventListener('visibilitychange', () => { if (document.hidden && game.running && !game.over) pauseGame(); });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
